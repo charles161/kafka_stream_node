@@ -1,17 +1,42 @@
 var WebSocketServer = require("websocket").server;
 var http = require("http");
 const pid = process.pid;
+const { Kafka } = require("kafkajs");
 
-var kafka = require("kafka-node");
-var Consumer = kafka.Consumer,
-  client = new kafka.KafkaClient("localhost:9092"),
-  consumer = new Consumer(client, [{ topic: "test", partition: 0 }], {
-    autoCommit: true,
+const kafka = new Kafka({
+  clientId: "my-app",
+  brokers: ["localhost:9092"],
+});
+
+const consumer = kafka.consumer({ groupId: "mqtt-cool" });
+
+async function initKafka() {
+  await consumer.connect();
+  await consumer.subscribe({ topic: "mqtt", fromBeginning: false });
+
+  await consumer.run({
+    eachMessage: async ({ topic, partition, message }) => {
+      console.log({
+        value: message.value.toString(),
+      });
+    },
   });
 
-// consumer.on("message", function (message) {
-//   console.log(message, "from ", pid);
-// });
+  const producer = kafka.producer();
+
+  await producer.connect();
+
+  setInterval(async () => {
+    await producer.send({
+      topic: "mqtt",
+      messages: [{ value: "Hello KafkaJS user!" }],
+    });
+  }, 3000);
+
+  // await producer.disconnect();
+}
+
+initKafka().catch(console.error);
 
 var server = http.createServer(function (request, response) {
   console.log(" Request recieved : " + request.url);
@@ -45,10 +70,10 @@ webSocketServer.on("request", function (request) {
       console.log("Received Message: " + message.utf8Data);
     }
   });
-  consumer.on("message", function (message) {
-    console.log(message);
-    connection.sendUTF(message.value);
-  });
+  //   consumer.on("message", function (message) {
+  //     console.log(message);
+  //     connection.sendUTF(message.value);
+  //   });
   connection.on("close", function (reasonCode, description) {
     console.log("Connection " + connection.remoteAddress + " disconnected.");
   });
