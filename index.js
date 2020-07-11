@@ -1,46 +1,45 @@
-// var WebSocketServer = require("websocket").server;
 var http = require("http");
-const pid = process.pid;
-const { Kafka } = require("kafkajs");
+const kafka = require("kafka-node");
 
-const kafka = new Kafka({
-  clientId: "my-app",
-  brokers: ["2.tcp.ngrok.io:10345"],
-});
+const kafkaClientOptions = { sessionTimeout: 100, spinDelay: 100, retries: 2 };
+const kafkaClient = new kafka.Client(
+  "2.tcp.ngrok.io:10345",
+  "producer-client",
+  kafkaClientOptions
+);
+const kafkaProducer = new kafka.HighLevelProducer(kafkaClient);
 
-const consumer = kafka.consumer({ groupId: "mqtt-cool" });
+kafkaClient.on("error", (error) => console.error("Kafka client error:", error));
+kafkaProducer.on("error", (error) =>
+  console.error("Kafka producer error:", error)
+);
 
-async function initKafka() {
-  await consumer.connect();
-  await consumer.subscribe({ topic: "mqtt", fromBeginning: false });
-
-  await consumer.run({
-    eachMessage: async ({ topic, partition, message }) => {
-      console.log({
-        value: message.value.toString(),
-      });
-    },
-  });
-
-  const producer = kafka.producer();
-
-  await producer.connect();
-
-  setInterval(async () => {
-    await producer.send({
+setInterval(() => {
+  const payload = [
+    {
       topic: "mqtt",
-      messages: [{ value: "Hello KafkaJS user!" }],
-    });
-  }, 10000);
+      messages: [
+        {
+          value: "it is cool",
+        },
+      ],
+      attributes: 1,
+    },
+  ];
 
-  // await producer.disconnect();
-}
-
-initKafka().catch(console.error);
+  kafkaProducer.send(payload, function (error, result) {
+    console.info("Sent payload to Kafka:", payload);
+    if (error) {
+      console.error("Sending payload failed:", error);
+    } else {
+      console.log("Sending payload result:", result);
+    }
+  });
+}, 5000);
 
 var server = http.createServer(function (request, response) {
   console.log(" Request recieved : " + request.url);
-  response.writeHead(404);
+  response.writeHead(200);
   response.end();
 });
 server.listen(9099, function () {
