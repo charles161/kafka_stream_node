@@ -5,7 +5,7 @@ const { Kafka } = require("kafkajs");
 
 const kafka = new Kafka({
   clientId: "my-app",
-  brokers: ["2.tcp.ngrok.io:10345"],
+  brokers: ["broker:29092"],
 });
 
 const consumer = kafka.consumer({ groupId: "mqtt-cool" });
