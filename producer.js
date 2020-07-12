@@ -26,15 +26,16 @@ async function initKafka() {
   const producer = kafka.producer();
 
   await producer.connect();
-
+  let count = 0;
   setInterval(async () => {
+    count++;
     await producer.send({
       topic: "mqtt",
       messages: [
         {
           value: JSON.stringify({
             topic: "temperature",
-            payload: { awesome: "cool" },
+            payload: { awesome: "cool " + count },
           }),
         },
       ],
