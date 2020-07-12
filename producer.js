@@ -4,11 +4,11 @@ const pid = process.pid;
 const { Kafka } = require("kafkajs");
 
 const kafka = new Kafka({
-  clientId: "my-app",
-  brokers: ["broker:29092"],
+  clientId: "test",
+  brokers: ["0.tcp.ngrok.io:15605"],
 });
 
-const consumer = kafka.consumer({ groupId: "mqtt-cool" });
+const consumer = kafka.consumer({ groupId: "mqtt-gp-producer" });
 
 async function initKafka() {
   await consumer.connect();
@@ -17,6 +17,7 @@ async function initKafka() {
   await consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
       console.log({
+        topic,
         value: message.value.toString(),
       });
     },
@@ -29,7 +30,14 @@ async function initKafka() {
   setInterval(async () => {
     await producer.send({
       topic: "mqtt",
-      messages: [{ value: "Hello KafkaJS user!" }],
+      messages: [
+        {
+          value: JSON.stringify({
+            topic: "temperature",
+            payload: { awesome: "cool" },
+          }),
+        },
+      ],
     });
   }, 10000);
 

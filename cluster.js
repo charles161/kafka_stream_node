@@ -9,5 +9,5 @@ if (cluster.isMaster) {
     cluster.fork();
   }
 } else {
-  require("./consumer");
+  require("./consumer.js");
 }
